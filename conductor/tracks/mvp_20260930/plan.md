@@ -1,14 +1,14 @@
 # Implementation Plan: MVP SendToKindle
 
 ## Phase 1: Setup & Configuration Model
-- [ ] Task: Set up the basic C# class library project for the Jellyfin plugin.
-- [ ] Task: Define the `PluginConfiguration` class.
-  - [ ] Write unit tests for configuration serialization/deserialization.
-  - [ ] Implement properties: SmtpServer, SmtpPort, SmtpUsername, SmtpPassword, TargetKindleEmail.
-- [ ] Task: Implement the main `Plugin` class inheriting from `BasePlugin<PluginConfiguration>`.
-  - [ ] Write tests ensuring plugin ID, Name, and Description are set correctly.
-  - [ ] Implement the `Plugin` class.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Set up the basic C# class library project for the Jellyfin plugin.
+- [x] Task: Define the `PluginConfiguration` class.
+  - [x] Write unit tests for configuration serialization/deserialization.
+  - [x] Implement properties: SmtpServer, SmtpPort, SmtpUsername, SmtpPassword, TargetKindleEmail.
+- [x] Task: Implement the main `Plugin` class inheriting from `BasePlugin<PluginConfiguration>`.
+  - [x] Write tests ensuring plugin ID, Name, and Description are set correctly.
+  - [x] Implement the `Plugin` class.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 9027be7]
 
 ## Phase 2: Email Delivery Service (SMTP)
 - [ ] Task: Create `ISmtpDeliveryService` interface.
