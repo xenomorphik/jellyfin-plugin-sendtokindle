@@ -19,12 +19,12 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 137e47f]
 
 ## Phase 3: Book Extraction & Core Logic
-- [ ] Task: Create a service to handle the "Send to Kindle" action.
-  - [ ] Write unit tests for the core logic: Verify it only processes Book/Document items.
-  - [ ] Write unit tests for format selection: Ensure it prioritizes EPUB, then MOBI, and fails for unsupported formats (PDF, AZW3).
-  - [ ] Implement the logic: Check item type, find the physical file path of the prioritized format, and pass it to `ISmtpDeliveryService`.
-  - [ ] Add logging for successful extractions and format errors.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Create a service to handle the "Send to Kindle" action.
+  - [x] Write unit tests for the core logic: Verify it only processes Book/Document items.
+  - [x] Write unit tests for format selection: Ensure it prioritizes EPUB, then MOBI, and fails for unsupported formats (PDF, AZW3).
+  - [x] Implement the logic: Check item type, find the physical file path of the prioritized format, and pass it to `ISmtpDeliveryService`.
+  - [x] Add logging for successful extractions and format errors.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 364516e]
 
 ## Phase 4: UI Integration
 - [ ] Task: Inject the "Send to Kindle" action into the Jellyfin Web UI.
