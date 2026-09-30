@@ -33,3 +33,6 @@
   - [x] Wire the UI elements to call the plugin's backend service (Phase 3).
   - [x] Implement UI feedback (toasts) based on the backend response.
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: c351f96]
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions [checkpoint: 8a83d22]
