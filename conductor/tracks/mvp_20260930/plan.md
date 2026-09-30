@@ -27,9 +27,9 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 364516e]
 
 ## Phase 4: UI Integration
-- [ ] Task: Inject the "Send to Kindle" action into the Jellyfin Web UI.
-  - [ ] Create the necessary JavaScript/HTML patches or custom endpoints to add the context menu item.
-  - [ ] Create the necessary JavaScript/HTML patches to add the button to the item detail page.
-  - [ ] Wire the UI elements to call the plugin's backend service (Phase 3).
-  - [ ] Implement UI feedback (toasts) based on the backend response.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Inject the "Send to Kindle" action into the Jellyfin Web UI.
+  - [x] Create the necessary JavaScript/HTML patches or custom endpoints to add the context menu item.
+  - [x] Create the necessary JavaScript/HTML patches to add the button to the item detail page.
+  - [x] Wire the UI elements to call the plugin's backend service (Phase 3).
+  - [x] Implement UI feedback (toasts) based on the backend response.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: c351f96]
