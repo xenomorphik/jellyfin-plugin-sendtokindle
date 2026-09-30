@@ -1,15 +1,16 @@
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Mail;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using MimeKit;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 
 namespace Jellyfin.Plugin.SendToKindle.Services
 {
     /// <summary>
-    /// Implementation of the SMTP delivery service using standard .NET SmtpClient.
+    /// Implementation of the SMTP delivery service using MailKit.
     /// </summary>
     public class SmtpDeliveryService : ISmtpDeliveryService
     {
@@ -49,28 +50,35 @@ namespace Jellyfin.Plugin.SendToKindle.Services
             {
                 _logger.LogInformation("Preparing to send book '{Title}' to {Email}", bookTitle, config.TargetKindleEmail);
 
-                using var message = new MailMessage();
-                message.From = new MailAddress(config.SmtpUsername);
-                message.To.Add(new MailAddress(config.TargetKindleEmail));
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress("Jellyfin SendToKindle", config.SmtpUsername));
+                message.To.Add(new MailboxAddress("Kindle Device", config.TargetKindleEmail));
                 message.Subject = "Send to Kindle";
-                message.Body = $"Sending book: {bookTitle}";
+
+                var builder = new BodyBuilder
+                {
+                    TextBody = $"Sending book: {bookTitle}"
+                };
 
                 // Attach the book file
-                using var attachment = new Attachment(bookFilePath);
-                message.Attachments.Add(attachment);
+                builder.Attachments.Add(bookFilePath);
+                message.Body = builder.ToMessageBody();
 
-                using var client = new SmtpClient(config.SmtpServer, config.SmtpPort);
-                client.Credentials = new NetworkCredential(config.SmtpUsername, config.SmtpPassword);
-                client.EnableSsl = true;
+                using var client = new SmtpClient();
+                
+                // Connect to the SMTP server
+                await client.ConnectAsync(config.SmtpServer, config.SmtpPort, SecureSocketOptions.Auto, cancellationToken).ConfigureAwait(false);
 
-                // SendMailAsync does not natively accept a cancellation token in older frameworks, 
-                // but registering cancellation can help abort the connection if needed.
-                using (cancellationToken.Register(() => client.SendAsyncCancel()))
-                {
-                    await client.SendMailAsync(message, cancellationToken).ConfigureAwait(false);
-                }
+                // Authenticate
+                await client.AuthenticateAsync(config.SmtpUsername, config.SmtpPassword, cancellationToken).ConfigureAwait(false);
 
-                _logger.LogInformation("Successfully sent book '{Title}' to {Email}", bookTitle, config.TargetKindleEmail);
+                // Send the email
+                await client.SendAsync(message, cancellationToken).ConfigureAwait(false);
+
+                // Disconnect cleanly
+                await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("Successfully sent book '{Title}' to {Email} using MailKit", bookTitle, config.TargetKindleEmail);
                 return true;
             }
             catch (Exception ex)
