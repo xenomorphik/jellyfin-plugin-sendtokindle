@@ -11,12 +11,12 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 9027be7]
 
 ## Phase 2: Email Delivery Service (SMTP)
-- [ ] Task: Create `ISmtpDeliveryService` interface.
-- [ ] Task: Implement `SmtpDeliveryService`.
-  - [ ] Write unit tests (mocking SMTP) to verify email construction (subject, body, attachments) and configuration usage.
-  - [ ] Implement the service using `MailKit` or standard .NET SMTP clients to send emails with attachments.
-  - [ ] Add robust error handling and logging for connection failures or invalid credentials.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Create `ISmtpDeliveryService` interface.
+- [x] Task: Implement `SmtpDeliveryService`.
+  - [x] Write unit tests (mocking SMTP) to verify email construction (subject, body, attachments) and configuration usage.
+  - [x] Implement the service using `MailKit` or standard .NET SMTP clients to send emails with attachments.
+  - [x] Add robust error handling and logging for connection failures or invalid credentials.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [checkpoint: 137e47f]
 
 ## Phase 3: Book Extraction & Core Logic
 - [ ] Task: Create a service to handle the "Send to Kindle" action.
