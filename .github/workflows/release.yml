@@ -16,7 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Fetch full history so we can push back to main if needed
           fetch-depth: 0
 
       - name: Setup .NET 8.0
@@ -30,6 +29,7 @@ jobs:
       - name: Zip plugin
         run: |
           cd out
+          rm -f Jellyfin.*.dll MediaBrowser.*.dll Emby.*.dll Microsoft.Extensions.*.dll ICU4N*.dll Diacritics.dll J2N.dll
           zip -r ../SendToKindle.zip ./*
           cd ..
 
