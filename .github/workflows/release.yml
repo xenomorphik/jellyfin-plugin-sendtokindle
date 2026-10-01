@@ -1,0 +1,37 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build plugin
+        run: dotnet publish Jellyfin.Plugin.SendToKindle/Jellyfin.Plugin.SendToKindle.csproj -c Release -o out
+
+      - name: Zip plugin
+        run: |
+          cd out
+          zip -r ../SendToKindle.zip ./*
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SendToKindle.zip
+          generate_release_notes: true
