@@ -57,7 +57,7 @@ namespace Jellyfin.Plugin.SendToKindle.Services
                 _logger.LogInformation("Found Jellyfin Web index.html at {Path}", indexPath);
                 string content = File.ReadAllText(indexPath);
 
-                var version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.8";
+                var version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.9";
                 string newTag = $"<script src=\"https://raw.githubusercontent.com/xenomorphik/jellyfin-plugin-sendtokindle/main/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js?v={version}\" defer></script>";
 
                 bool modified = false;

@@ -1,6 +1,26 @@
 (function () {
     'use strict';
 
+    let lastClickedItemId = null;
+
+    // Track the last clicked card or item to get its ID
+    document.addEventListener('contextmenu', function(e) {
+        let card = e.target.closest('.card') || e.target.closest('[data-id]');
+        if (card) {
+            lastClickedItemId = card.getAttribute('data-id');
+        }
+    }, true);
+
+    document.addEventListener('click', function(e) {
+        let btn = e.target.closest('[data-action="menu"]') || e.target.closest('.btnItemMenu');
+        if (btn) {
+            let card = btn.closest('.card') || btn.closest('[data-id]');
+            if (card) {
+                lastClickedItemId = card.getAttribute('data-id');
+            }
+        }
+    }, true);
+
     const getEmail = async () => {
         try {
             let res = await fetch(ApiClient.getUrl('SendToKindle/UserEmail'), {
@@ -88,8 +108,17 @@
                         
                         if (menuScroller && !menuScroller.querySelector('.custom-send-to-kindle')) {
                             
-                            const activeCard = document.querySelector('.card.card-focused') || document.querySelector('.card.contextmenu-active');
-                            const itemId = activeCard ? activeCard.getAttribute('data-id') : null;
+                            // Try to get itemId from URL (item details page)
+                            let itemId = null;
+                            const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
+                            if (urlParams.has('id')) {
+                                itemId = urlParams.get('id');
+                            }
+                            
+                            // Fallback to last clicked item
+                            if (!itemId) {
+                                itemId = lastClickedItemId;
+                            }
 
                             if (itemId) {
                                 const sendBtn = document.createElement('button');
@@ -134,5 +163,5 @@
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-    console.log("SendToKindle Custom Context Menu Script Loaded Successfully.");
+    console.log("SendToKindle Custom Context Menu Script Loaded Successfully. Listening for context menus...");
 })();
