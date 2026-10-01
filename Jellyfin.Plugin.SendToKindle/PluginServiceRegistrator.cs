@@ -1,6 +1,7 @@
 using Jellyfin.Plugin.SendToKindle.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MediaBrowser.Controller.Plugins;
+using MediaBrowser.Controller;
 
 namespace Jellyfin.Plugin.SendToKindle
 {
@@ -10,7 +11,7 @@ namespace Jellyfin.Plugin.SendToKindle
     public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         /// <inheritdoc />
-        public void RegisterServices(IServiceCollection serviceCollection)
+        public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
         {
             serviceCollection.AddHostedService<WebInjectorService>();
             serviceCollection.AddTransient<IKindleExtractionService, KindleExtractionService>();
