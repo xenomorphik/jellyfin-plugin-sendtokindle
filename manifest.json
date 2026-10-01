@@ -8,12 +8,12 @@
         "category": "General",
         "versions": [
             {
-                "version": "1.0.0.0",
-                "changelog": "Initial MVP release",
+                "version": "1.0.1.0",
+                "changelog": "Added UI Configuration page",
                 "targetAbi": "10.9.11.0",
-                "sourceUrl": "https://github.com/xenomorphik/jellyfin-plugin-sendtokindle/releases/download/v1.0.0/SendToKindle.zip",
-                "checksum": "942d8398e42a0057f93937a62df00565",
-                "timestamp": "2026-09-30T00:00:00Z"
+                "sourceUrl": "https://github.com/xenomorphik/jellyfin-plugin-sendtokindle/releases/download/v1.0.1/SendToKindle.zip",
+                "checksum": "",
+                "timestamp": "2026-09-30T20:25:00Z"
             }
         ]
     }
