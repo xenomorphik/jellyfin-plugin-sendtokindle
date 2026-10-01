@@ -4,17 +4,18 @@ using System.Threading.Tasks;
 namespace Jellyfin.Plugin.SendToKindle.Services
 {
     /// <summary>
-    /// Interface for the SMTP delivery service.
+    /// Interface for sending files via SMTP.
     /// </summary>
     public interface ISmtpDeliveryService
     {
         /// <summary>
-        /// Sends a book to the configured Kindle email address.
+        /// Sends a book file to the configured Kindle email.
         /// </summary>
-        /// <param name="bookFilePath">The path to the physical book file.</param>
-        /// <param name="bookTitle">The title of the book.</param>
+        /// <param name="bookFilePath">Path to the book file.</param>
+        /// <param name="bookTitle">Title of the book.</param>
+        /// <param name="targetEmail">The target email address for this user.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A task representing the asynchronous operation. Returns true if successful.</returns>
-        Task<bool> SendBookAsync(string bookFilePath, string bookTitle, CancellationToken cancellationToken);
+        /// <returns>A task representing the operation. Returns true if successful.</returns>
+        Task<bool> SendBookAsync(string bookFilePath, string bookTitle, string targetEmail, CancellationToken cancellationToken);
     }
 }

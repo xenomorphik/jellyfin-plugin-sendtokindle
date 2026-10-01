@@ -22,7 +22,7 @@ namespace Jellyfin.Plugin.SendToKindle.Services
         }
 
         /// <inheritdoc />
-        public async Task<bool> SendBookAsync(string bookFilePath, string bookTitle, CancellationToken cancellationToken)
+        public async Task<bool> SendBookAsync(string bookFilePath, string bookTitle, string targetEmail, CancellationToken cancellationToken)
         {
             var config = Plugin.Instance?.Configuration;
             if (config == null)
@@ -34,7 +34,7 @@ namespace Jellyfin.Plugin.SendToKindle.Services
             if (string.IsNullOrWhiteSpace(config.SmtpServer) || 
                 string.IsNullOrWhiteSpace(config.SmtpUsername) || 
                 string.IsNullOrWhiteSpace(config.SmtpPassword) || 
-                string.IsNullOrWhiteSpace(config.TargetKindleEmail))
+                string.IsNullOrWhiteSpace(targetEmail))
             {
                 _logger.LogError("SMTP Configuration is incomplete. Please check the plugin settings.");
                 return false;
@@ -48,11 +48,11 @@ namespace Jellyfin.Plugin.SendToKindle.Services
 
             try
             {
-                _logger.LogInformation("Preparing to send book '{Title}' to {Email}", bookTitle, config.TargetKindleEmail);
+                _logger.LogInformation("Preparing to send book '{Title}' to {Email}", bookTitle, targetEmail);
 
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress("Jellyfin SendToKindle", config.SmtpUsername));
-                message.To.Add(new MailboxAddress("Kindle Device", config.TargetKindleEmail));
+                message.To.Add(new MailboxAddress("Kindle Device", targetEmail));
                 message.Subject = "Send to Kindle";
 
                 var builder = new BodyBuilder
@@ -78,7 +78,7 @@ namespace Jellyfin.Plugin.SendToKindle.Services
                 // Disconnect cleanly
                 await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
 
-                _logger.LogInformation("Successfully sent book '{Title}' to {Email} using MailKit", bookTitle, config.TargetKindleEmail);
+                _logger.LogInformation("Successfully sent book '{Title}' to {Email} using MailKit", bookTitle, targetEmail);
                 return true;
             }
             catch (Exception ex)

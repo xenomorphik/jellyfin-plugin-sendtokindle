@@ -9,6 +9,7 @@
         <div data-role="content">
             <div class="content-primary">
                 <h1>Send to Kindle</h1>
+                <p>Configure the global SMTP settings used to send emails to Kindle devices. Users will configure their own Kindle Email Address via the context menu.</p>
                 <form class="SendToKindleConfigForm">
                     
                     <div class="inputContainer">
@@ -35,12 +36,6 @@
                         <div class="fieldDescription">App password if using 2FA</div>
                     </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="TargetKindleEmail">Target Kindle Email</label>
-                        <input type="email" id="TargetKindleEmail" name="TargetKindleEmail" is="emby-input" required />
-                        <div class="fieldDescription">Your @kindle.com email address</div>
-                    </div>
-
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -61,7 +56,6 @@
                     document.querySelector('#SmtpPort').value = config.SmtpPort || '587';
                     document.querySelector('#SmtpUsername').value = config.SmtpUsername || '';
                     document.querySelector('#SmtpPassword').value = config.SmtpPassword || '';
-                    document.querySelector('#TargetKindleEmail').value = config.TargetKindleEmail || '';
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -75,7 +69,6 @@
                     config.SmtpPort = parseInt(document.querySelector('#SmtpPort').value, 10);
                     config.SmtpUsername = document.querySelector('#SmtpUsername').value;
                     config.SmtpPassword = document.querySelector('#SmtpPassword').value;
-                    config.TargetKindleEmail = document.querySelector('#TargetKindleEmail').value;
 
                     ApiClient.updatePluginConfiguration(SendToKindleConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);

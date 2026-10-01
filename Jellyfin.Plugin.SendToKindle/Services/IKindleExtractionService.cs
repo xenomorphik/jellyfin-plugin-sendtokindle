@@ -15,6 +15,6 @@ namespace Jellyfin.Plugin.SendToKindle.Services
         /// <param name="itemId">The ID of the item to process.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the operation. Returns true if successful.</returns>
-        Task<bool> SendItemToKindleAsync(Guid itemId, CancellationToken cancellationToken);
+        Task<bool> SendItemToKindleAsync(Guid itemId, Guid userId, CancellationToken cancellationToken);
     }
 }

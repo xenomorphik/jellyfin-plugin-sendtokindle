@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.SendToKindle.Configuration
@@ -28,8 +29,13 @@ namespace Jellyfin.Plugin.SendToKindle.Configuration
         public string SmtpPassword { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the target Kindle email address.
+        /// Gets or sets the target Kindle email address (Legacy).
         /// </summary>
         public string TargetKindleEmail { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the per-user target Kindle emails.
+        /// </summary>
+        public Dictionary<string, string> UserTargetKindleEmails { get; set; } = new Dictionary<string, string>();
     }
 }

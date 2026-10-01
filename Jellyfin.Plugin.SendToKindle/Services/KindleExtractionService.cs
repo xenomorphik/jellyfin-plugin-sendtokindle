@@ -29,8 +29,26 @@ namespace Jellyfin.Plugin.SendToKindle.Services
         }
 
         /// <inheritdoc />
-        public async Task<bool> SendItemToKindleAsync(Guid itemId, CancellationToken cancellationToken)
+        public async Task<bool> SendItemToKindleAsync(Guid itemId, Guid userId, CancellationToken cancellationToken)
         {
+            var config = Plugin.Instance?.Configuration;
+            if (config == null)
+            {
+                _logger.LogError("Plugin configuration is null.");
+                return false;
+            }
+
+            if (!config.UserTargetKindleEmails.TryGetValue(userId.ToString(), out var targetEmail) && string.IsNullOrEmpty(targetEmail))
+            {
+                targetEmail = config.TargetKindleEmail; // Fallback
+            }
+
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                _logger.LogWarning("No Target Kindle Email configured for user {UserId}", userId);
+                return false;
+            }
+
             var item = _libraryManager.GetItemById(itemId);
             if (item == null)
             {
@@ -53,12 +71,11 @@ namespace Jellyfin.Plugin.SendToKindle.Services
 
             _logger.LogInformation("Found compatible format for '{Name}' at {Path}", item.Name, bookPath);
 
-            return await _smtpService.SendBookAsync(bookPath, item.Name, cancellationToken).ConfigureAwait(false);
+            return await _smtpService.SendBookAsync(bookPath, item.Name, targetEmail, cancellationToken).ConfigureAwait(false);
         }
 
         private string? FindBestFormat(string directoryOrFilePath)
         {
-            // If the item path is already a direct file to a supported format
             if (File.Exists(directoryOrFilePath))
             {
                 var ext = Path.GetExtension(directoryOrFilePath).ToLowerInvariant();
@@ -66,8 +83,6 @@ namespace Jellyfin.Plugin.SendToKindle.Services
                 {
                     return directoryOrFilePath;
                 }
-                
-                // If it's a file but unsupported (e.g. .pdf), try looking in its directory
                 directoryOrFilePath = Path.GetDirectoryName(directoryOrFilePath) ?? string.Empty;
             }
 
@@ -77,20 +92,11 @@ namespace Jellyfin.Plugin.SendToKindle.Services
             }
 
             var files = Directory.GetFiles(directoryOrFilePath);
-
-            // Prioritize EPUB
             var epub = files.FirstOrDefault(f => Path.GetExtension(f).Equals(".epub", StringComparison.OrdinalIgnoreCase));
-            if (epub != null)
-            {
-                return epub;
-            }
+            if (epub != null) return epub;
 
-            // Fallback to MOBI
             var mobi = files.FirstOrDefault(f => Path.GetExtension(f).Equals(".mobi", StringComparison.OrdinalIgnoreCase));
-            if (mobi != null)
-            {
-                return mobi;
-            }
+            if (mobi != null) return mobi;
 
             return null;
         }
