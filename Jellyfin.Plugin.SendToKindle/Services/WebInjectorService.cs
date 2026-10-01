@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Configuration;
@@ -16,8 +17,6 @@ namespace Jellyfin.Plugin.SendToKindle.Services
         private readonly IApplicationPaths _appPaths;
         private readonly ILogger<WebInjectorService> _logger;
 
-        private const string InjectionTag = "<script src=\"https://raw.githubusercontent.com/xenomorphik/jellyfin-plugin-sendtokindle/main/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js\" defer></script>";
-
         public WebInjectorService(IApplicationPaths appPaths, ILogger<WebInjectorService> logger)
         {
             _appPaths = appPaths;
@@ -30,8 +29,6 @@ namespace Jellyfin.Plugin.SendToKindle.Services
 
             try
             {
-                // In many installations, the web path is located relative to the application paths
-                // We'll try a few common locations
                 string[] possiblePaths = new[]
                 {
                     Path.Combine(_appPaths.ProgramDataPath, "jellyfin-web"),
@@ -60,15 +57,43 @@ namespace Jellyfin.Plugin.SendToKindle.Services
                 _logger.LogInformation("Found Jellyfin Web index.html at {Path}", indexPath);
                 string content = File.ReadAllText(indexPath);
 
-                if (!content.Contains("sendtokindle.js"))
+                var version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.8";
+                string newTag = $"<script src=\"https://raw.githubusercontent.com/xenomorphik/jellyfin-plugin-sendtokindle/main/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js?v={version}\" defer></script>";
+
+                bool modified = false;
+
+                // Remove any old injection tags that don't match exactly
+                var pattern = @"<script[^>]*sendtokindle\.js[^>]*></script>";
+                var existingMatches = Regex.Matches(content, pattern);
+                
+                bool hasExactMatch = false;
+                foreach (Match match in existingMatches)
                 {
-                    content = content.Replace("</body>", $"    {InjectionTag}\n</body>");
+                    if (match.Value == newTag)
+                    {
+                        hasExactMatch = true;
+                    }
+                    else
+                    {
+                        content = content.Replace(match.Value, string.Empty);
+                        modified = true;
+                    }
+                }
+
+                if (!hasExactMatch)
+                {
+                    content = content.Replace("</body>", $"    {newTag}\n</body>");
+                    modified = true;
+                }
+
+                if (modified)
+                {
                     File.WriteAllText(indexPath, content);
-                    _logger.LogInformation("Successfully injected SendToKindle script into Jellyfin Web UI.");
+                    _logger.LogInformation("Successfully updated SendToKindle script tag in Jellyfin Web UI.");
                 }
                 else
                 {
-                    _logger.LogInformation("SendToKindle script is already injected into Jellyfin Web UI.");
+                    _logger.LogInformation("SendToKindle script is already up-to-date in Jellyfin Web UI.");
                 }
             }
             catch (UnauthorizedAccessException)
