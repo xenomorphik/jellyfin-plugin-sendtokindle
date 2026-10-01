@@ -7,10 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.9.11" />
-    <PackageReference Include="Jellyfin.Model" Version="10.9.11" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.9.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="10.9.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
     <PackageReference Include="MailKit" Version="4.8.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
