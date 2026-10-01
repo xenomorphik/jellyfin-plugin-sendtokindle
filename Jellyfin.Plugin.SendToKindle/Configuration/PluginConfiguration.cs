@@ -4,6 +4,22 @@ using MediaBrowser.Model.Plugins;
 namespace Jellyfin.Plugin.SendToKindle.Configuration;
 
 /// <summary>
+/// A mapping between a user ID and a target kindle email.
+/// </summary>
+public class UserEmailMap
+{
+    /// <summary>
+    /// Gets or sets the user ID.
+    /// </summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the email address.
+    /// </summary>
+    public string Email { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Plugin configuration.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
@@ -34,7 +50,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public string SmtpPassword { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the user target kindle emails.
+    /// Gets or sets the user target kindle emails.
     /// </summary>
-    public Dictionary<string, string> UserTargetKindleEmails { get; } = new Dictionary<string, string>();
+    public List<UserEmailMap> UserTargetKindleEmails { get; set; } = new List<UserEmailMap>();
 }
