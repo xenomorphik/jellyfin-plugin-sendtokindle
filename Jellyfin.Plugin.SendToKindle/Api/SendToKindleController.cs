@@ -8,113 +8,133 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Jellyfin.Plugin.SendToKindle.Api
+namespace Jellyfin.Plugin.SendToKindle.Api;
+
+/// <summary>
+/// Controller for the Send to Kindle plugin API.
+/// </summary>
+[ApiController]
+[Authorize]
+[Route("SendToKindle")]
+public class SendToKindleController : ControllerBase
 {
-    public class UserEmailDto
+    private readonly IKindleExtractionService _extractionService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SendToKindleController"/> class.
+    /// </summary>
+    /// <param name="extractionService">The extraction service.</param>
+    public SendToKindleController(IKindleExtractionService extractionService)
     {
-        public string Email { get; set; } = string.Empty;
+        _extractionService = extractionService;
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "Jellyfin-UserId")?.Value;
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
     }
 
     /// <summary>
-    /// Controller for the Send to Kindle plugin API.
+    /// Gets the user email.
     /// </summary>
-    [ApiController]
-    [Authorize]
-    [Route("SendToKindle")]
-    public class SendToKindleController : ControllerBase
+    /// <returns>The user email.</returns>
+    [HttpGet("UserEmail")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult<UserEmailDto> GetUserEmail()
     {
-        private readonly IKindleExtractionService _extractionService;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SendToKindleController"/> class.
-        /// </summary>
-        /// <param name="extractionService">The extraction service.</param>
-        public SendToKindleController(IKindleExtractionService extractionService)
+        var userId = GetCurrentUserId();
+        if (userId == null)
         {
-            _extractionService = extractionService;
+            return Unauthorized();
         }
 
-        private Guid? GetCurrentUserId()
+        var config = Plugin.Instance?.Configuration;
+        if (config != null && config.UserTargetKindleEmails.TryGetValue(userId.ToString()!, out var email))
         {
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "Jellyfin-UserId")?.Value;
-            if (Guid.TryParse(userIdClaim, out var userId))
-            {
-                return userId;
-            }
-            return null;
+            return Ok(new UserEmailDto { Email = email });
         }
 
-        [HttpGet("UserEmail")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public ActionResult<UserEmailDto> GetUserEmail()
+        return Ok(new UserEmailDto { Email = config?.TargetKindleEmail ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Sets the user email.
+    /// </summary>
+    /// <param name="dto">The dto.</param>
+    /// <returns>The result.</returns>
+    [HttpPost("UserEmail")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult SetUserEmail([FromBody] UserEmailDto dto)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var config = Plugin.Instance?.Configuration;
-            if (config != null && config.UserTargetKindleEmails.TryGetValue(userId.ToString()!, out var email))
-            {
-                return Ok(new UserEmailDto { Email = email });
-            }
-
-            return Ok(new UserEmailDto { Email = config?.TargetKindleEmail ?? string.Empty });
+            return Unauthorized();
         }
 
-        [HttpPost("UserEmail")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public ActionResult SetUserEmail([FromBody] UserEmailDto dto)
+        var config = Plugin.Instance?.Configuration;
+        if (config != null)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
+            config.UserTargetKindleEmails[userId.ToString()!] = dto.Email;
+            Plugin.Instance?.SaveConfiguration();
+        }
 
-            var config = Plugin.Instance?.Configuration;
-            if (config != null)
-            {
-                config.UserTargetKindleEmails[userId.ToString()!] = dto.Email;
-                Plugin.Instance!.SaveConfiguration();
-            }
+        return NoContent();
+    }
 
+    /// <summary>
+    /// Send an item.
+    /// </summary>
+    /// <param name="itemId">The item ID.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    [HttpPost("Send/{itemId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
+    public async Task<ActionResult> SendItem([FromRoute, Required] Guid itemId, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var config = Plugin.Instance?.Configuration;
+        bool hasEmail = false;
+
+        if (config != null && config.UserTargetKindleEmails.TryGetValue(userId.ToString()!, out var email))
+        {
+            hasEmail = !string.IsNullOrWhiteSpace(email);
+        }
+        else if (!string.IsNullOrWhiteSpace(config?.TargetKindleEmail))
+        {
+            hasEmail = true;
+        }
+
+        if (!hasEmail)
+        {
+            return StatusCode(StatusCodes.Status412PreconditionFailed, "User has not configured a target Kindle email address.");
+        }
+
+        try
+        {
+            await _extractionService.SendItemToKindleAsync(itemId, userId.Value, cancellationToken).ConfigureAwait(false);
             return NoContent();
         }
-
-        /// <summary>
-        /// Sends an item to the configured Kindle email.
-        /// </summary>
-        /// <param name="itemId">The ID of the item to send.</param>
-        /// <returns>An <see cref="OkResult"/> on success, or a <see cref="BadRequestResult"/> on failure.</returns>
-        [HttpPost("Send/{itemId}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
-        public async Task<ActionResult> SendItem([FromRoute, Required] Guid itemId)
+        catch (Exception)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var config = Plugin.Instance?.Configuration;
-            if (config == null) return StatusCode(StatusCodes.Status412PreconditionFailed, "Configuration missing.");
-
-            config.UserTargetKindleEmails.TryGetValue(userId.ToString()!, out var targetEmail);
-            if (string.IsNullOrEmpty(targetEmail))
-            {
-                targetEmail = config.TargetKindleEmail;
-            }
-
-            if (string.IsNullOrEmpty(targetEmail))
-            {
-                return StatusCode(StatusCodes.Status412PreconditionFailed, "Target Kindle Email not set for user.");
-            }
-
-            var success = await _extractionService.SendItemToKindleAsync(itemId, userId.Value, CancellationToken.None).ConfigureAwait(false);
-            
-            if (success)
-            {
-                return NoContent();
-            }
-
-            return BadRequest("Failed to send item to Kindle. Check server logs for details.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send item to Kindle.");
         }
     }
 }
