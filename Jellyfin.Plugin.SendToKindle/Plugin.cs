@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Jellyfin.Plugin.SendToKindle.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
 namespace Jellyfin.Plugin.SendToKindle
@@ -9,7 +11,7 @@ namespace Jellyfin.Plugin.SendToKindle
     /// <summary>
     /// The main plugin.
     /// </summary>
-    public class Plugin : BasePlugin<PluginConfiguration>
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Plugin"/> class.
@@ -35,5 +37,18 @@ namespace Jellyfin.Plugin.SendToKindle
         /// Gets the current plugin instance.
         /// </summary>
         public static Plugin? Instance { get; private set; }
+
+        /// <inheritdoc />
+        public IEnumerable<PluginPageInfo> GetPages()
+        {
+            return new[]
+            {
+                new PluginPageInfo
+                {
+                    Name = this.Name,
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.configPage.html", GetType().Namespace)
+                }
+            };
+        }
     }
 }

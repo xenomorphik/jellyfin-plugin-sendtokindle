@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Send to Kindle Configuration</title>
+</head>
+<body>
+    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button">
+        <div data-role="content">
+            <div class="content-primary">
+                <form class="SendToKindleConfigForm">
+                    
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SmtpServer">SMTP Server</label>
+                        <input type="text" id="SmtpServer" name="SmtpServer" is="emby-input" required />
+                        <div class="fieldDescription">Example: smtp.gmail.com</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SmtpPort">SMTP Port</label>
+                        <input type="number" id="SmtpPort" name="SmtpPort" is="emby-input" required />
+                        <div class="fieldDescription">Example: 587 (TLS) or 465 (SSL)</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SmtpUsername">SMTP Username</label>
+                        <input type="text" id="SmtpUsername" name="SmtpUsername" is="emby-input" required />
+                        <div class="fieldDescription">The email address you are sending from.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SmtpPassword">SMTP Password</label>
+                        <input type="password" id="SmtpPassword" name="SmtpPassword" is="emby-input" required />
+                        <div class="fieldDescription">Your email password or App Password.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TargetKindleEmail">Kindle Email Address</label>
+                        <input type="email" id="TargetKindleEmail" name="TargetKindleEmail" is="emby-input" required />
+                        <div class="fieldDescription">Your target Kindle address (e.g. yourname@kindle.com).</div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Save</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var SendToKindleConfig = {
+                pluginUniqueId: 'f6e80b43-9876-47b2-bd88-abcdef123456'
+            };
+
+            document.querySelector('.SendToKindleConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                
+                var server = document.querySelector('#SmtpServer').value;
+                var port = document.querySelector('#SmtpPort').value;
+                var user = document.querySelector('#SmtpUsername').value;
+                var pass = document.querySelector('#SmtpPassword').value;
+                var target = document.querySelector('#TargetKindleEmail').value;
+
+                ApiClient.getPluginConfiguration(SendToKindleConfig.pluginUniqueId).then(function (config) {
+                    config.SmtpServer = server;
+                    config.SmtpPort = parseInt(port);
+                    config.SmtpUsername = user;
+                    config.SmtpPassword = pass;
+                    config.TargetKindleEmail = target;
+
+                    ApiClient.updatePluginConfiguration(SendToKindleConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            });
+
+            document.querySelector('.pluginConfigurationPage').addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(SendToKindleConfig.pluginUniqueId).then(function (config) {
+                    document.querySelector('#SmtpServer').value = config.SmtpServer || '';
+                    document.querySelector('#SmtpPort').value = config.SmtpPort || '587';
+                    document.querySelector('#SmtpUsername').value = config.SmtpUsername || '';
+                    document.querySelector('#SmtpPassword').value = config.SmtpPassword || '';
+                    document.querySelector('#TargetKindleEmail').value = config.TargetKindleEmail || '';
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
