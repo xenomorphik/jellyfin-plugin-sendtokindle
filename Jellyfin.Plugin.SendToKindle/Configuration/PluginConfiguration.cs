@@ -1,23 +1,7 @@
-using System.Collections.Generic;
+using System;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.SendToKindle.Configuration;
-
-/// <summary>
-/// A mapping between a user ID and a target kindle email.
-/// </summary>
-public class UserEmailMap
-{
-    /// <summary>
-    /// Gets or sets the user ID.
-    /// </summary>
-    public string UserId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the email address.
-    /// </summary>
-    public string Email { get; set; } = string.Empty;
-}
 
 /// <summary>
 /// Plugin configuration.
@@ -52,5 +36,7 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets the user target kindle emails.
     /// </summary>
-    public List<UserEmailMap> UserTargetKindleEmails { get; set; } = new List<UserEmailMap>();
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Needed for XML Serialization")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XML Serialization")]
+    public UserEmailMap[] UserTargetKindleEmails { get; set; } = Array.Empty<UserEmailMap>();
 }

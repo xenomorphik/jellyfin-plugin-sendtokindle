@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.SendToKindle.Services;
 using Jellyfin.Plugin.SendToKindle.Configuration;
+using Jellyfin.Plugin.SendToKindle.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -95,7 +95,9 @@ public class SendToKindleController : ControllerBase
             }
             else
             {
-                config.UserTargetKindleEmails.Add(new UserEmailMap { UserId = userId.ToString()!, Email = dto.Email });
+                var list = config.UserTargetKindleEmails.ToList();
+                list.Add(new UserEmailMap { UserId = userId.ToString()!, Email = dto.Email });
+                config.UserTargetKindleEmails = list.ToArray();
             }
 
             Plugin.Instance!.SaveConfiguration();

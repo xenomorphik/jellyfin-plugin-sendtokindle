@@ -44,9 +44,12 @@ public class KindleExtractionService : IKindleExtractionService
             return false;
         }
 
-        if (!config.UserTargetKindleEmails.TryGetValue(userId.ToString(), out var targetEmail) && string.IsNullOrEmpty(targetEmail))
+        var userMap = config.UserTargetKindleEmails.FirstOrDefault(u => u.UserId == userId.ToString());
+        var targetEmail = userMap?.Email;
+
+        if (string.IsNullOrEmpty(targetEmail))
         {
-            targetEmail = config.TargetKindleEmail; // Fallback
+            targetEmail = config.TargetKindleEmail;
         }
 
         if (string.IsNullOrWhiteSpace(targetEmail))
