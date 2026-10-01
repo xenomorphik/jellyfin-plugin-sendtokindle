@@ -1,0 +1,1 @@
+namespace Jellyfin.Plugin.SendToKindle.Services;
