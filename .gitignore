@@ -1,6 +1,9 @@
 bin/
 obj/
 out/
-.vs/
-*.user
-
+*.zip
+*.dll
+*.pdb
+*.pyc
+*.txt
+scratch/

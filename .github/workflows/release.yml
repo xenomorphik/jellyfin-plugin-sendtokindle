@@ -30,7 +30,8 @@ jobs:
         run: |
           cd out
           rm -f Jellyfin.*.dll MediaBrowser.*.dll Emby.*.dll Microsoft.Extensions.*.dll ICU4N*.dll Diacritics.dll J2N.dll
-          zip -r ../SendToKindle.zip ./*
+          rm -f ../SendToKindle.zip
+          zip -r ../SendToKindle.zip ./**
           cd ..
 
       - name: Create GitHub Release
