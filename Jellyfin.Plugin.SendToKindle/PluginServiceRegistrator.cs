@@ -7,7 +7,7 @@ namespace Jellyfin.Plugin.SendToKindle
     /// <summary>
     /// Registers services into the Jellyfin Dependency Injection container.
     /// </summary>
-    public class PluginServiceRegistrator : IPluginServiceRegistrar
+    public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         /// <inheritdoc />
         public void RegisterServices(IServiceCollection serviceCollection)
