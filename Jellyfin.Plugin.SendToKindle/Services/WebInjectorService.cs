@@ -68,7 +68,10 @@ public class WebInjectorService : IHostedService
             string content = await File.ReadAllTextAsync(indexPath, cancellationToken).ConfigureAwait(false);
 
             var version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.9";
-            string newTag = $"<script src=\"https://raw.githubusercontent.com/xenomorphik/jellyfin-plugin-sendtokindle/main/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js?v={version}\" defer></script>";
+            
+            // Note: raw.githubusercontent.com serves files as text/plain and browsers will refuse to execute it.
+            // Using jsdelivr CDN to properly serve as application/javascript.
+            string newTag = $"<script src=\"https://cdn.jsdelivr.net/gh/xenomorphik/jellyfin-plugin-sendtokindle@v{version}/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js\" defer></script>";
 
             bool modified = false;
 
