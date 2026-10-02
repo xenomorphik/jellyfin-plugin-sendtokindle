@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.0.23.0",
+                "changelog": "Automated release for v1.0.23",
+                "targetAbi": "10.9.11.0",
+                "sourceUrl": "https://github.com/xenomorphik/jellyfin-plugin-sendtokindle/releases/download/v1.0.23/SendToKindle.zip",
+                "checksum": "31552454175ae8ca745b0417f1708b92",
+                "timestamp": "2026-10-02T00:52:36Z"
+            },
+            {
                 "version": "1.0.22.0",
                 "changelog": "Automated release for v1.0.22",
                 "targetAbi": "10.9.11.0",
