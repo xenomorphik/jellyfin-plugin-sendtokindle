@@ -88,19 +88,61 @@
         }
     };
 
-    const openSettings = async () => {
-        let current = await getEmail();
-        let newEmail = await promptUserForEmail(current);
-        if (newEmail !== null) {
-            await setEmail(newEmail);
-            require(['toast'], function(toast) { toast("Kindle email updated."); });
+    function tryInjectProfileSettings() {
+        if (!window.location.hash.includes('settings/profile')) return;
+        
+        let container = document.querySelector('.userSettingsPage .formContainer form') 
+                     || document.querySelector('.userSettingsPage form') 
+                     || (document.querySelector('.page:not(.hide)') ? document.querySelector('.page:not(.hide)').querySelector('form') : null);
+                     
+        if (container && !document.getElementById('sendToKindleProfileSection')) {
+            let section = document.createElement('div');
+            section.id = 'sendToKindleProfileSection';
+            section.className = 'detailSection';
+            section.style.marginTop = '2em';
+            section.style.marginBottom = '2em';
+            section.innerHTML = `
+                <div class="detailSectionHeader">
+                    <h2 class="detailSectionTitle">Send to Kindle</h2>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtKindleEmailProfile">Target Kindle Email</label>
+                    <input is="emby-input" type="email" id="txtKindleEmailProfile" class="emby-input" placeholder="youremail@kindle.com" style="width: 100%; max-width: 400px; padding: .5em; border: 1px solid #555; border-radius: 4px; background: rgba(0,0,0,0.2); color: inherit;" />
+                    <div class="fieldDescription">The email address of your Kindle device. (Must be authorized in your Amazon account)</div>
+                </div>
+                <button is="emby-button" type="button" class="raised button-submit block emby-button" id="btnSaveKindleEmailProfile" style="margin-top: 1em; padding: 0.5em 1em; background-color: #00a4dc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <span>Save Kindle Email</span>
+                </button>
+            `;
+            
+            const saveBtnContainer = container.querySelector('.formSubmitContainer') || container.querySelector('button[type="submit"]')?.parentNode;
+            if (saveBtnContainer) {
+                container.insertBefore(section, saveBtnContainer);
+            } else {
+                container.appendChild(section);
+            }
+
+            getEmail().then(email => {
+                if (email) document.getElementById('txtKindleEmailProfile').value = email;
+            });
+
+            document.getElementById('btnSaveKindleEmailProfile').addEventListener('click', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('txtKindleEmailProfile').value;
+                await setEmail(email);
+                require(['toast'], function (toast) { toast("Kindle email saved successfully!"); });
+            });
         }
-    };
+    }
 
     const observer = new MutationObserver((mutations) => {
+        let shouldCheckProfile = false;
+        
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === Node.ELEMENT_NODE) {
+                    shouldCheckProfile = true;
+
                     const actionSheet = node.querySelector('.actionSheet') || (node.classList && node.classList.contains('actionSheet') ? node : null);
                     
                     if (actionSheet) {
@@ -108,14 +150,12 @@
                         
                         if (menuScroller && !menuScroller.querySelector('.custom-send-to-kindle')) {
                             
-                            // Try to get itemId from URL (item details page)
                             let itemId = null;
                             const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
                             if (urlParams.has('id')) {
                                 itemId = urlParams.get('id');
                             }
                             
-                            // Fallback to last clicked item
                             if (!itemId) {
                                 itemId = lastClickedItemId;
                             }
@@ -137,31 +177,24 @@
                                     if (closeBtn) closeBtn.click();
                                 });
                                 menuScroller.appendChild(sendBtn);
-
-                                const settingsBtn = document.createElement('button');
-                                settingsBtn.className = 'listItem actionSheetMenuItem notFocusable custom-send-to-kindle-settings';
-                                settingsBtn.innerHTML = `
-                                    <div class="listItem-icon listItem-icon-transparent">
-                                        <span class="material-icons actionSheetMenuItemIcon">settings</span>
-                                    </div>
-                                    <div class="listItemBody">
-                                        <div class="listItemBodyText">Kindle Settings</div>
-                                    </div>
-                                `;
-                                settingsBtn.addEventListener('click', () => {
-                                    openSettings();
-                                    const closeBtn = actionSheet.querySelector('.btnCancel') || actionSheet.querySelector('button[data-id="cancel"]');
-                                    if (closeBtn) closeBtn.click();
-                                });
-                                menuScroller.appendChild(settingsBtn);
                             }
                         }
                     }
                 }
             });
         });
+
+        if (shouldCheckProfile) {
+            tryInjectProfileSettings();
+        }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-    console.log("SendToKindle Custom Context Menu Script Loaded Successfully. Listening for context menus...");
+    
+    window.addEventListener('hashchange', () => {
+        setTimeout(tryInjectProfileSettings, 100);
+        setTimeout(tryInjectProfileSettings, 500);
+    });
+
+    console.log("SendToKindle Custom Context Menu Script Loaded Successfully. Listening for context menus and settings pages...");
 })();
