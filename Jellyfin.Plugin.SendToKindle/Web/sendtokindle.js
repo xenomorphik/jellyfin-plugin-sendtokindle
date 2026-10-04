@@ -120,6 +120,15 @@
                 <button is="emby-button" type="button" class="raised button-submit block emby-button" id="btnSaveKindleEmailProfile" style="margin-top: 1em; padding: 0.5em 1em; background-color: #00a4dc; color: white; border: none; border-radius: 4px; cursor: pointer;">
                     <span>Save Kindle Email</span>
                 </button>
+                
+                <div class="inputContainer" style="margin-top: 2em;">
+                    <label class="inputLabel" for="fileUploadKindle">Direct Upload to Kindle</label>
+                    <input type="file" id="fileUploadKindle" accept=".epub,.mobi,.azw3,.pdf,.cbz,.cbr,.prc,.pdb" style="width: 100%; max-width: 400px; padding: .5em; border: 1px solid #555; border-radius: 4px; background: rgba(0,0,0,0.2); color: inherit;" />
+                    <div class="fieldDescription">Choose a book from your local device to send directly. (EPUB, MOBI, AZW3, PDF, CBZ, CBR, PRC, PDB)</div>
+                </div>
+                <button is="emby-button" type="button" class="raised block emby-button" id="btnUploadToKindle" style="margin-top: 1em; padding: 0.5em 1em; background-color: #00a4dc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <span>Upload & Send</span>
+                </button>
             `;
             
             const saveBtnContainer = container.querySelector('.formSubmitContainer') || container.querySelector('button[type="submit"]')?.parentNode;
@@ -138,6 +147,54 @@
                 const email = document.getElementById('txtKindleEmailProfile').value;
                 await setEmail(email);
                 require(['toast'], function (toast) { toast("Kindle email saved successfully!"); });
+            });
+
+            document.getElementById('btnUploadToKindle').addEventListener('click', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('fileUploadKindle');
+                if (fileInput.files.length === 0) {
+                    require(['toast'], function (toast) { toast("Please select a file to upload."); });
+                    return;
+                }
+                const file = fileInput.files[0];
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    Dashboard.showLoadingMsg();
+                    let res = await fetch(ApiClient.getUrl('SendToKindle/Upload'), {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"'
+                        },
+                        body: formData
+                    });
+                    Dashboard.hideLoadingMsg();
+                    
+                    if (res.status === 412) {
+                        require(['toast'], function (toast) { toast("Please set and save your Target Kindle Email first."); });
+                        return;
+                    }
+                    if (!res.ok) {
+                        let errorText = "Upload failed";
+                        try { 
+                            errorText = await res.text(); 
+                            if (!errorText) errorText = "Upload failed";
+                        } catch(e) {}
+                        throw new Error(errorText);
+                    }
+                    
+                    require(['toast'], function (toast) {
+                        toast("Delivery Queued! Your uploaded book will be sent to your Kindle shortly.");
+                    });
+                    fileInput.value = "";
+                } catch (err) {
+                    Dashboard.hideLoadingMsg();
+                    require(['toast'], function (toast) {
+                        toast(err.message === "Upload failed" ? "Failed to upload to Kindle. See logs." : err.message);
+                    });
+                }
             });
         }
     }

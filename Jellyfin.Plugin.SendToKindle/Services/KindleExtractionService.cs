@@ -163,50 +163,133 @@ public class KindleExtractionService : IKindleExtractionService
         // We will run this in a background thread.
         _ = Task.Run(
             async () =>
+            {
+                await ProcessAndSendLocalFileAsync(bookPath, item.Name, targetEmail, isConverted, dto).ConfigureAwait(false);
+            },
+            CancellationToken.None);
+
+        return true;
+    }
+
+    private async Task ProcessAndSendLocalFileAsync(string bookPath, string title, string targetEmail, bool deleteSourceAfterSend, EpubMetadataDto? dto)
+    {
+        string finalBookPath = bookPath;
+        bool isTempFile = false;
+        try
         {
-            string finalBookPath = bookPath;
-            bool isTempFile = false;
-            try
+            if (dto != null)
             {
                 finalBookPath = EpubMetadataInjector.InjectMetadata(bookPath, dto, _logger);
                 isTempFile = finalBookPath != bookPath;
+            }
 
-                await _smtpService.SendBookAsync(finalBookPath, item.Name, targetEmail, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception ex)
+            await _smtpService.SendBookAsync(finalBookPath, title, targetEmail, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Background Kindle send failed for {ItemName}", title);
+        }
+        finally
+        {
+            if (deleteSourceAfterSend && File.Exists(bookPath))
             {
-                _logger.LogError(ex, "Background Kindle send failed for {ItemName}", item.Name);
-            }
-            finally
-            {
-                if (isConverted && File.Exists(bookPath))
+                try
                 {
-                    try
-                    {
-                        File.Delete(bookPath);
-                    }
-                    catch
-                    {
-                    }
+                    File.Delete(bookPath);
                 }
-
-                // Temp files are now managed by a background cleanup task, but we can also clean them up here.
-                if (isTempFile && File.Exists(finalBookPath))
+                catch
                 {
-                    try
-                    {
-                        File.Delete(finalBookPath);
-                    }
-                    catch
-                    {
-                    }
                 }
             }
+
+            // Temp files are now managed by a background cleanup task, but we can also clean them up here.
+            if (isTempFile && File.Exists(finalBookPath))
+            {
+                try
+                {
+                    File.Delete(finalBookPath);
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<bool> SendFileToKindleAsync(string filePath, string title, Guid userId, CancellationToken cancellationToken)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            _logger.LogError("Plugin configuration is null.");
+            return Task.FromResult(false);
+        }
+
+        var userMap = config.UserTargetKindleEmails.FirstOrDefault(u => u.UserId == userId.ToString());
+        var targetEmail = userMap?.Email;
+
+        if (string.IsNullOrEmpty(targetEmail))
+        {
+            targetEmail = config.TargetKindleEmail;
+        }
+
+        if (string.IsNullOrWhiteSpace(targetEmail))
+        {
+            _logger.LogWarning("No Target Kindle Email configured for user {UserId}", userId);
+            return Task.FromResult(false);
+        }
+
+        var bookPath = FindBestFormat(filePath);
+
+        string targetForDrm = bookPath ?? filePath;
+
+        if (!string.IsNullOrEmpty(targetForDrm) && File.Exists(targetForDrm))
+        {
+            var noDrm = TryRemoveDrm(targetForDrm);
+            if (!string.IsNullOrEmpty(noDrm) && !string.Equals(noDrm, targetForDrm, StringComparison.OrdinalIgnoreCase))
+            {
+                if (bookPath != null)
+                {
+                    bookPath = noDrm;
+                }
+                else
+                {
+                    targetForDrm = noDrm; // Pass down the DRM-free path for conversion
+                }
+
+                // we should delete the temporary uploaded file if we converted it via DeDRM
+                // but for simplicity we rely on the final cleanup step.
+            }
+        }
+
+        if (string.IsNullOrEmpty(bookPath))
+        {
+            bookPath = ConvertToEpubIfPossible(targetForDrm);
+            if (string.IsNullOrEmpty(bookPath))
+            {
+                _logger.LogWarning("No supported Kindle formats found for uploaded book '{Name}'.", title);
+                throw new InvalidOperationException("Unsupported format. Only EPUB, CBZ, CBR, PDF are supported.");
+            }
+        }
+
+        var fileInfo = new FileInfo(bookPath);
+        if (fileInfo.Length > 50 * 1024 * 1024)
+        {
+            _logger.LogWarning("File size {Size} exceeds Amazon's 50MB Send to Kindle limit.", fileInfo.Length);
+            throw new InvalidOperationException("File size exceeds Amazon's 50MB Send to Kindle limit.");
+        }
+
+        _logger.LogInformation("Found compatible format for uploaded '{Name}' at {Path}", title, bookPath);
+
+        _ = Task.Run(
+            async () =>
+        {
+            await ProcessAndSendLocalFileAsync(bookPath, title, targetEmail, true, null).ConfigureAwait(false);
         },
             CancellationToken.None);
 
-        // Always return true to acknowledge the queueing
-        return true;
+        return Task.FromResult(true);
     }
 
     private string? FindBestFormat(string directoryOrFilePath)

@@ -185,4 +185,93 @@ public class SendToKindleController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    /// <summary>
+    /// Uploads a book and sends it directly to the configured Kindle email.
+    /// </summary>
+    /// <param name="file">The file to send.</param>
+    /// <returns>An <see cref="OkResult"/> on success, or a <see cref="BadRequestResult"/> on failure.</returns>
+    [HttpPost("Upload")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> UploadBook([FromForm] IFormFile file)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+        {
+            return StatusCode(StatusCodes.Status412PreconditionFailed, "Configuration missing.");
+        }
+
+        var userMap = config.UserTargetKindleEmails.FirstOrDefault(u => u.UserId == userId.ToString());
+        var targetEmail = userMap?.Email;
+
+        if (string.IsNullOrEmpty(targetEmail))
+        {
+            targetEmail = config.TargetKindleEmail;
+        }
+
+        if (string.IsNullOrEmpty(targetEmail))
+        {
+            return StatusCode(StatusCodes.Status412PreconditionFailed, "Target Kindle Email not set for user.");
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        var ext = System.IO.Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".epub" && ext != ".mobi" && ext != ".azw3" && ext != ".pdf" && ext != ".cbz" && ext != ".cbr" && ext != ".prc" && ext != ".pdb")
+        {
+            return BadRequest("Unsupported file type.");
+        }
+
+        var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "sendtokindle_upload_" + Guid.NewGuid().ToString() + ext);
+        try
+        {
+            using (var stream = new System.IO.FileStream(tempFile, System.IO.FileMode.Create))
+            {
+                await file.CopyToAsync(stream).ConfigureAwait(false);
+            }
+
+            var title = System.IO.Path.GetFileNameWithoutExtension(file.FileName);
+
+            var success = await _extractionService.SendFileToKindleAsync(tempFile, title, userId.Value, CancellationToken.None).ConfigureAwait(false);
+
+            if (success)
+            {
+                return NoContent();
+            }
+
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send uploaded item to Kindle.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            if (System.IO.File.Exists(tempFile))
+            {
+                try
+                {
+                    System.IO.File.Delete(tempFile);
+                }
+                catch
+                {
+                }
+            }
+
+            throw;
+        }
+    }
 }
