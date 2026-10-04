@@ -33,6 +33,25 @@ public class SendToKindleController : ControllerBase
         _smtpDeliveryService = smtpDeliveryService;
     }
 
+    /// <summary>
+    /// Gets the SendToKindle injected javascript file.
+    /// </summary>
+    /// <returns>The javascript file.</returns>
+    [HttpGet("sendtokindle.js")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [Produces("application/javascript")]
+    public ActionResult GetSendToKindleJs()
+    {
+        var type = GetType();
+        var resourceStream = type.Assembly.GetManifestResourceStream("Jellyfin.Plugin.SendToKindle.Web.sendtokindle.js");
+        if (resourceStream == null)
+        {
+            return NotFound();
+        }
+
+        return File(resourceStream, "application/javascript");
+    }
+
     private Guid? GetCurrentUserId()
     {
         var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "Jellyfin-UserId")?.Value;

@@ -8,8 +8,8 @@
     <NoWarn>$(NoWarn);NU1902;NU1903;NU1904</NoWarn>
     <Nullable>enable</Nullable>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <Version>1.0.28.0</Version>
-    <AssemblyVersion>1.0.28.0</AssemblyVersion>
+    <Version>1.0.29.0</Version>
+    <AssemblyVersion>1.0.29.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -44,6 +44,7 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <EmbeddedResource Include="Web\sendtokindle.js" />
   </ItemGroup>
 
 </Project>
