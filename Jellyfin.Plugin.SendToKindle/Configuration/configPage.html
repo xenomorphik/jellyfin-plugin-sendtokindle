@@ -46,6 +46,27 @@
                         <div class="fieldDescription">Comma-separated list of Kindle Serial Numbers (PIDs) used to decrypt DRM-protected Amazon books. (Required to send protected .azw3 or .mobi files)</div>
                     </div>
 
+                    <h2>Shelfmark Integration</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" is="emby-checkbox" id="EnableShelfmark" />
+                            <span>Enable Shelfmark Search & Download</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Allow users to search and request books from a remote Shelfmark instance directly within Jellyfin.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ShelfmarkUrl">Shelfmark Server URL</label>
+                        <input type="url" id="ShelfmarkUrl" name="ShelfmarkUrl" is="emby-input" />
+                        <div class="fieldDescription">The base URL of your Shelfmark instance (e.g. http://192.168.1.100:8084)</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ShelfmarkApiKey">Shelfmark API Key</label>
+                        <input type="password" id="ShelfmarkApiKey" name="ShelfmarkApiKey" is="emby-input" />
+                        <div class="fieldDescription">Static API key configured in Shelfmark.</div>
+                    </div>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -82,6 +103,9 @@
                     document.querySelector('#SmtpUsername').value = config.SmtpUsername || '';
                     document.querySelector('#SmtpPassword').value = config.SmtpPassword || '';
                     document.querySelector('#KindleSerialNumbers').value = config.KindleSerialNumbers || '';
+                    document.querySelector('#EnableShelfmark').checked = config.EnableShelfmark || false;
+                    document.querySelector('#ShelfmarkUrl').value = config.ShelfmarkUrl || '';
+                    document.querySelector('#ShelfmarkApiKey').value = config.ShelfmarkApiKey || '';
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -96,6 +120,9 @@
                     config.SmtpUsername = document.querySelector('#SmtpUsername').value;
                     config.SmtpPassword = document.querySelector('#SmtpPassword').value;
                     config.KindleSerialNumbers = document.querySelector('#KindleSerialNumbers').value;
+                    config.EnableShelfmark = document.querySelector('#EnableShelfmark').checked;
+                    config.ShelfmarkUrl = document.querySelector('#ShelfmarkUrl').value;
+                    config.ShelfmarkApiKey = document.querySelector('#ShelfmarkApiKey').value;
 
                     ApiClient.updatePluginConfiguration(SendToKindleConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);

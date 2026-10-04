@@ -39,6 +39,21 @@ public class PluginConfiguration : BasePluginConfiguration
     public string KindleSerialNumbers { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets a value indicating whether Shelfmark integration is enabled.
+    /// </summary>
+    public bool EnableShelfmark { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the Shelfmark API Key.
+    /// </summary>
+    public string ShelfmarkApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Shelfmark Server URL.
+    /// </summary>
+    public string ShelfmarkUrl { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the user target kindle emails.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Needed for XML Serialization")]

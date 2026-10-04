@@ -55,6 +55,18 @@
         });
     };
 
+    const isShelfmarkEnabled = async () => {
+        try {
+            let res = await fetch(ApiClient.getUrl('SendToKindle/ShelfmarkEnabled'), {
+                headers: { 'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"' }
+            });
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch(e) { }
+        return false;
+    };
+
     const sendToKindle = async (itemId) => {
         try {
             Dashboard.showLoadingMsg();
@@ -193,6 +205,100 @@
                     Dashboard.hideLoadingMsg();
                     require(['toast'], function (toast) {
                         toast(err.message === "Upload failed" ? "Failed to upload to Kindle. See logs." : err.message);
+                    });
+                }
+            });
+
+            isShelfmarkEnabled().then(enabled => {
+                if (enabled) {
+                    let smSection = document.createElement('div');
+                    smSection.style.cssText = "margin-top: 2em; padding-top: 1em; border-top: 1px solid rgba(255,255,255,0.1);";
+                    smSection.innerHTML = `
+                        <h2 class="detailSectionTitle">Search Books (Shelfmark)</h2>
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="shelfmarkQuery">Search Title or Author</label>
+                            <div style="display:flex;gap:10px;">
+                                <input type="text" id="shelfmarkQuery" placeholder="Book Title or Author" style="flex: 1; padding: .5em; border: 1px solid #555; border-radius: 4px; background: rgba(0,0,0,0.2); color: inherit;" />
+                                <button is="emby-button" type="button" class="raised emby-button" id="btnSearchShelfmark" style="padding: 0.5em 1em; background-color: #00a4dc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    <span>Search</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="shelfmarkResults" style="margin-top:1em; display:flex; flex-direction:column; gap:10px;"></div>
+                    `;
+                    section.appendChild(smSection);
+
+                    document.getElementById('btnSearchShelfmark').addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        let q = document.getElementById('shelfmarkQuery').value;
+                        if (!q) return;
+
+                        Dashboard.showLoadingMsg();
+                        try {
+                            let res = await fetch(ApiClient.getUrl('SendToKindle/ShelfmarkProxy/api/metadata/search?query=' + encodeURIComponent(q)), {
+                                headers: { 'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"' }
+                            });
+                            let resData = await res.json();
+                            let data = resData.books || resData || [];
+                            let resultsDiv = document.getElementById('shelfmarkResults');
+                            resultsDiv.innerHTML = "";
+
+                            if (!data || data.length === 0) {
+                                resultsDiv.innerHTML = "<div>No results found.</div>";
+                            } else {
+                                data.slice(0, 10).forEach(book => {
+                                    let div = document.createElement('div');
+                                    div.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:10px; border-radius:4px;";
+                                    div.innerHTML = `
+                                        <div style="flex:1;">
+                                            <strong>${book.title}</strong><br>
+                                            <small>${book.authors ? book.authors.join(', ') : 'Unknown Author'}</small>
+                                        </div>
+                                        <button is="emby-button" class="raised emby-button btnDownloadShelfmark" data-book='${JSON.stringify(book).replace(/'/g, "&apos;")}' style="padding: 0.5em; background-color: #00a4dc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                            Request / Download
+                                        </button>
+                                    `;
+                                    resultsDiv.appendChild(div);
+                                });
+
+                                resultsDiv.querySelectorAll('.btnDownloadShelfmark').forEach(btn => {
+                                    btn.addEventListener('click', async (ev) => {
+                                        ev.preventDefault();
+                                        let bookData = JSON.parse(btn.getAttribute('data-book').replace(/&apos;/g, "'"));
+                                        Dashboard.showLoadingMsg();
+                                        try {
+                                            let reqRes = await fetch(ApiClient.getUrl('SendToKindle/ShelfmarkProxy/api/requests'), {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"',
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({
+                                                    context: { source: "jellyfin", request_level: "book" },
+                                                    book_data: {
+                                                        provider: bookData.provider || "hardcover",
+                                                        book_id: bookData.id || bookData.book_id || bookData.provider_id,
+                                                        title: bookData.title
+                                                    }
+                                                })
+                                            });
+                                            if (reqRes.ok) {
+                                                require(['toast'], function (toast) { toast("Request sent to Shelfmark! The book will be downloaded and processed shortly."); });
+                                            } else {
+                                                let errText = await reqRes.text();
+                                                require(['toast'], function (toast) { toast("Failed to send request: " + errText); });
+                                            }
+                                        } catch (e) {
+                                            require(['toast'], function (toast) { toast("Error: " + e.message); });
+                                        }
+                                        Dashboard.hideLoadingMsg();
+                                    });
+                                });
+                            }
+                        } catch (e) {
+                            require(['toast'], function (toast) { toast("Search failed: " + e.message); });
+                        }
+                        Dashboard.hideLoadingMsg();
                     });
                 }
             });

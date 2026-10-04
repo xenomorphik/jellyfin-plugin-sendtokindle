@@ -274,4 +274,54 @@ public class SendToKindleController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Gets whether Shelfmark integration is enabled.
+    /// </summary>
+    /// <returns>True if enabled, else false.</returns>
+    [HttpGet("ShelfmarkEnabled")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<bool> ShelfmarkEnabled()
+    {
+        var config = Plugin.Instance?.Configuration;
+        return Ok(config != null && config.EnableShelfmark && !string.IsNullOrWhiteSpace(config.ShelfmarkUrl) && !string.IsNullOrWhiteSpace(config.ShelfmarkApiKey));
+    }
+
+    /// <summary>
+    /// Proxies requests to a configured Shelfmark instance.
+    /// </summary>
+    /// <param name="path">The URL path in Shelfmark.</param>
+    /// <returns>A proxy response from Shelfmark.</returns>
+    [AcceptVerbs("GET", "POST", "PUT", "DELETE", Route = "ShelfmarkProxy/{*path}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> ShelfmarkProxy([FromRoute] string path)
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null || !config.EnableShelfmark || string.IsNullOrWhiteSpace(config.ShelfmarkUrl) || string.IsNullOrWhiteSpace(config.ShelfmarkApiKey))
+        {
+            return BadRequest("Shelfmark integration is not enabled or configured.");
+        }
+
+        var targetUrl = $"{config.ShelfmarkUrl.TrimEnd('/')}/{path}{Request.QueryString}";
+
+        using var client = new System.Net.Http.HttpClient();
+        var proxyRequest = new System.Net.Http.HttpRequestMessage(new System.Net.Http.HttpMethod(Request.Method), targetUrl);
+        proxyRequest.Headers.Add("X-Api-Key", config.ShelfmarkApiKey);
+
+        if (Request.ContentLength > 0 && Request.Body.CanRead)
+        {
+            var streamContent = new System.Net.Http.StreamContent(Request.Body);
+            if (Request.ContentType != null)
+            {
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(Request.ContentType);
+            }
+
+            proxyRequest.Content = streamContent;
+        }
+
+        var response = await client.SendAsync(proxyRequest).ConfigureAwait(false);
+        var responseContent = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+
+        return File(responseContent, response.Content.Headers.ContentType?.ToString() ?? "application/json");
+    }
 }
