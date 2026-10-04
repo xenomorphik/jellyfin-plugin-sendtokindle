@@ -20,14 +20,17 @@ namespace Jellyfin.Plugin.SendToKindle.Api;
 public class SendToKindleController : ControllerBase
 {
     private readonly IKindleExtractionService _extractionService;
+    private readonly ISmtpDeliveryService _smtpDeliveryService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SendToKindleController"/> class.
     /// </summary>
     /// <param name="extractionService">The extraction service.</param>
-    public SendToKindleController(IKindleExtractionService extractionService)
+    /// <param name="smtpDeliveryService">The smtp delivery service.</param>
+    public SendToKindleController(IKindleExtractionService extractionService, ISmtpDeliveryService smtpDeliveryService)
     {
         _extractionService = extractionService;
+        _smtpDeliveryService = smtpDeliveryService;
     }
 
     private Guid? GetCurrentUserId()
@@ -39,6 +42,33 @@ public class SendToKindleController : ControllerBase
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Sends a test email to verify SMTP settings.
+    /// </summary>
+    /// <param name="request">The test email configuration.</param>
+    /// <returns>An <see cref="OkResult"/> on success, or a <see cref="BadRequestResult"/> on failure.</returns>
+    [HttpPost("TestEmail")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> TestEmail([FromBody] TestEmailRequestDto request)
+    {
+        var success = await _smtpDeliveryService.SendTestEmailAsync(
+            request.SmtpServer,
+            request.SmtpPort,
+            request.SmtpUsername,
+            request.SmtpPassword,
+            request.TargetEmail,
+            CancellationToken.None).ConfigureAwait(false);
+
+        if (success)
+        {
+            return NoContent();
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send test email. Check server logs for details.");
     }
 
     /// <summary>

@@ -42,6 +42,21 @@
                         </button>
                     </div>
                 </form>
+
+                <br />
+                <h2>Test SMTP Configuration</h2>
+                <form class="SendToKindleTestForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TargetTestEmail">Target Test Email</label>
+                        <input type="email" id="TargetTestEmail" name="TargetTestEmail" is="emby-input" required />
+                        <div class="fieldDescription">The email address to send a test message to.</div>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Send Test Email</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
         <script type="text/javascript">
@@ -74,6 +89,34 @@
                         Dashboard.processPluginConfigurationUpdateResult(result);
                     });
                 });
+                return false;
+            });
+
+            document.querySelector('.SendToKindleTestForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+
+                var request = {
+                    SmtpServer: document.querySelector('#SmtpServer').value,
+                    SmtpPort: parseInt(document.querySelector('#SmtpPort').value, 10),
+                    SmtpUsername: document.querySelector('#SmtpUsername').value,
+                    SmtpPassword: document.querySelector('#SmtpPassword').value,
+                    TargetEmail: document.querySelector('#TargetTestEmail').value
+                };
+
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('SendToKindle/TestEmail'),
+                    data: JSON.stringify(request),
+                    contentType: 'application/json'
+                }).then(function () {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Test email sent successfully!');
+                }).catch(function (err) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Failed to send test email. Please check your settings and the server logs.');
+                });
+
                 return false;
             });
         </script>

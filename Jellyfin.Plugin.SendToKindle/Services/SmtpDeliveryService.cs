@@ -91,4 +91,56 @@ public class SmtpDeliveryService : ISmtpDeliveryService
             return false;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<bool> SendTestEmailAsync(string smtpServer, int smtpPort, string smtpUsername, string smtpPassword, string targetEmail, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(smtpServer) ||
+            string.IsNullOrWhiteSpace(smtpUsername) ||
+            string.IsNullOrWhiteSpace(smtpPassword) ||
+            string.IsNullOrWhiteSpace(targetEmail))
+        {
+            _logger.LogError("SMTP Configuration is incomplete. Cannot send test email.");
+            return false;
+        }
+
+        try
+        {
+            _logger.LogInformation("Preparing to send test email to {Email}", targetEmail);
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Jellyfin SendToKindle", smtpUsername));
+            message.To.Add(new MailboxAddress("Kindle Device", targetEmail));
+            message.Subject = "Send to Kindle - Test Email";
+
+            var builder = new BodyBuilder
+            {
+                TextBody = "If you are receiving this email, your SMTP configuration for the Jellyfin SendToKindle plugin is working correctly!"
+            };
+
+            message.Body = builder.ToMessageBody();
+
+            using var client = new SmtpClient();
+
+            // Connect to the SMTP server
+            await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.Auto, cancellationToken).ConfigureAwait(false);
+
+            // Authenticate
+            await client.AuthenticateAsync(smtpUsername, smtpPassword, cancellationToken).ConfigureAwait(false);
+
+            // Send the email
+            await client.SendAsync(message, cancellationToken).ConfigureAwait(false);
+
+            // Disconnect cleanly
+            await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
+
+            _logger.LogInformation("Successfully sent test email to {Email} using MailKit", targetEmail);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the test email via SMTP.");
+            return false;
+        }
+    }
 }
