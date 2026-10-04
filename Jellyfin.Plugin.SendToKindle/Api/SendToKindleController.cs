@@ -76,8 +76,6 @@ public class SendToKindleController : ControllerBase
     /// </summary>
     /// <returns>The user email.</returns>
     [HttpGet("UserEmail")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public ActionResult<UserEmailDto> GetUserEmail()
     {
         var userId = GetCurrentUserId();
@@ -105,8 +103,6 @@ public class SendToKindleController : ControllerBase
     /// <param name="dto">The new email.</param>
     /// <returns>A no content result.</returns>
     [HttpPost("UserEmail")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public ActionResult SetUserEmail([FromBody] UserEmailDto dto)
     {
         var userId = GetCurrentUserId();
@@ -173,13 +169,20 @@ public class SendToKindleController : ControllerBase
             return StatusCode(StatusCodes.Status412PreconditionFailed, "Target Kindle Email not set for user.");
         }
 
-        var success = await _extractionService.SendItemToKindleAsync(itemId, userId.Value, CancellationToken.None).ConfigureAwait(false);
-
-        if (success)
+        try
         {
-            return NoContent();
-        }
+            var success = await _extractionService.SendItemToKindleAsync(itemId, userId.Value, CancellationToken.None).ConfigureAwait(false);
 
-        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send item to Kindle.");
+            if (success)
+            {
+                return NoContent();
+            }
+
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send item to Kindle.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

@@ -35,6 +35,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\de\DeDRM_plugin\**\*">
+      <Link>DeDRM_plugin\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
   </ItemGroup>

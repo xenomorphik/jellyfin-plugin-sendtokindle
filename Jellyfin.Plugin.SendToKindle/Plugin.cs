@@ -39,6 +39,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// </summary>
     public static Plugin? Instance { get; private set; }
 
+    /// <summary>
+    /// Gets the application paths.
+    /// </summary>
+    public IApplicationPaths AppPaths => ApplicationPaths;
+
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {

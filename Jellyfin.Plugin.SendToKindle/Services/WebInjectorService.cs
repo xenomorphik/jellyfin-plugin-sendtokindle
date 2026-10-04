@@ -1,112 +1,78 @@
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Common.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.SendToKindle.Services;
 
 /// <summary>
-/// Service to automatically inject the SendToKindle JavaScript into the Jellyfin Web UI.
+/// Service to inject the frontend JS into Jellyfin's web index.
 /// </summary>
 public class WebInjectorService : IHostedService
 {
-    private readonly IApplicationPaths _appPaths;
     private readonly ILogger<WebInjectorService> _logger;
+    private readonly MediaBrowser.Model.IO.IFileSystem _fileSystem;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebInjectorService"/> class.
     /// </summary>
-    /// <param name="appPaths">The application paths.</param>
+    /// <param name="fileSystem">The file system.</param>
     /// <param name="logger">The logger.</param>
-    public WebInjectorService(IApplicationPaths appPaths, ILogger<WebInjectorService> logger)
+    public WebInjectorService(MediaBrowser.Model.IO.IFileSystem fileSystem, ILogger<WebInjectorService> logger)
     {
-        _appPaths = appPaths;
+        _fileSystem = fileSystem;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Starts the service.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public async Task StartAsync(CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Attempting to inject SendToKindle script into Jellyfin Web UI...");
+        InjectScript();
+        return Task.CompletedTask;
+    }
 
+    private void InjectScript()
+    {
         try
         {
-            string[] possiblePaths = new[]
+            var webPath = Environment.GetEnvironmentVariable("JELLYFIN_WEB_DIR");
+            if (string.IsNullOrEmpty(webPath))
             {
-                Path.Combine(_appPaths.ProgramDataPath, "jellyfin-web"),
-                "/usr/share/jellyfin/web",
-                "/jellyfin/jellyfin-web",
-                @"C:\Program Files\Jellyfin\Server\jellyfin-web"
-            };
-
-            string? indexPath = null;
-            foreach (var path in possiblePaths)
-            {
-                var testPath = Path.Combine(path, "index.html");
-                if (File.Exists(testPath))
-                {
-                    indexPath = testPath;
-                    break;
-                }
+                webPath = "/usr/share/jellyfin/web"; // Default docker/linux path
             }
 
-            if (indexPath == null)
+            if (!Directory.Exists(webPath))
             {
-                _logger.LogWarning("Could not find Jellyfin Web index.html. The SendToKindle context menu button will not appear unless manually injected.");
+                _logger.LogWarning("Jellyfin web directory not found at {Path}. SendToKindle UI injection will not work.", webPath);
                 return;
             }
 
-            _logger.LogInformation("Found Jellyfin Web index.html at {Path}", indexPath);
-            string content = await File.ReadAllTextAsync(indexPath, cancellationToken).ConfigureAwait(false);
-
-            var versionObj = GetType().Assembly.GetName().Version;
-            var version = versionObj != null ? $"{versionObj.Major}.{versionObj.Minor}.{versionObj.Build}" : "1.0.9";
-
-            // Note: raw.githubusercontent.com serves files as text/plain and browsers will refuse to execute it.
-            // Using jsdelivr CDN to properly serve as application/javascript.
-            string newTag = $"<script src=\"https://cdn.jsdelivr.net/gh/xenomorphik/jellyfin-plugin-sendtokindle@v{version}/Jellyfin.Plugin.SendToKindle/Web/sendtokindle.js\" defer></script>";
-
-            bool modified = false;
-
-            var pattern = @"<script[^>]*sendtokindle\.js[^>]*></script>";
-            var existingMatches = Regex.Matches(content, pattern);
-
-            bool hasExactMatch = false;
-            foreach (Match match in existingMatches)
+            var indexPath = Path.Combine(webPath, "index.html");
+            if (!File.Exists(indexPath))
             {
-                if (match.Value == newTag)
-                {
-                    hasExactMatch = true;
-                }
-                else
-                {
-                    content = content.Replace(match.Value, string.Empty, StringComparison.Ordinal);
-                    modified = true;
-                }
+                _logger.LogWarning("index.html not found in {Path}. SendToKindle UI injection will not work.", webPath);
+                return;
             }
 
-            if (!hasExactMatch)
+            var html = File.ReadAllText(indexPath);
+
+            var scriptPath = "/SendToKindle/sendtokindle.js";
+            var injectString = $"<script src=\"{scriptPath}\"></script>";
+
+            if (html.Contains(injectString, StringComparison.OrdinalIgnoreCase))
             {
-                content = content.Replace("</body>", $"    {newTag}\n</body>", StringComparison.Ordinal);
-                modified = true;
+                _logger.LogInformation("SendToKindle script already injected in index.html");
+                return;
             }
 
-            if (modified)
+            var headEnd = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+            if (headEnd != -1)
             {
-                await File.WriteAllTextAsync(indexPath, content, cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Successfully updated SendToKindle script tag in Jellyfin Web UI.");
-            }
-            else
-            {
-                _logger.LogInformation("SendToKindle script is already up-to-date in Jellyfin Web UI.");
+                html = html.Insert(headEnd, injectString + "\n");
+                File.WriteAllText(indexPath, html);
+                _logger.LogInformation("Successfully injected SendToKindle script into Jellyfin Web UI.");
             }
         }
         catch (UnauthorizedAccessException)
@@ -119,11 +85,7 @@ public class WebInjectorService : IHostedService
         }
     }
 
-    /// <summary>
-    /// Stops the service.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;

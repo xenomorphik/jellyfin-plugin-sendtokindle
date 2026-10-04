@@ -75,15 +75,22 @@
                 }
                 return;
             }
-            if (!res.ok) throw new Error("Send failed");
+            if (!res.ok) {
+                let errorText = "Send failed";
+                try { 
+                    errorText = await res.text(); 
+                    if (!errorText) errorText = "Send failed";
+                } catch(e) {}
+                throw new Error(errorText);
+            }
             
             require(['toast'], function (toast) {
-                toast("Successfully sent to Kindle!");
+                toast("Delivery Queued! Your book will be sent to your Kindle shortly.");
             });
         } catch (err) {
             Dashboard.hideLoadingMsg();
             require(['toast'], function (toast) {
-                toast("Failed to send to Kindle. See logs.");
+                toast(err.message === "Send failed" ? "Failed to send to Kindle. See logs." : err.message);
             });
         }
     };
