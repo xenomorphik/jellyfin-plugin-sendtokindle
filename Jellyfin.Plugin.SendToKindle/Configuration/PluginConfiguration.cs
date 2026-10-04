@@ -34,6 +34,11 @@ public class PluginConfiguration : BasePluginConfiguration
     public string SmtpPassword { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets a comma-separated list of Kindle Serial Numbers for DeDRM.
+    /// </summary>
+    public string KindleSerialNumbers { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the user target kindle emails.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Needed for XML Serialization")]

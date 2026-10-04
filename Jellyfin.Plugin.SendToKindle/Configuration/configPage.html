@@ -39,6 +39,13 @@
                         <div class="fieldDescription">App password if using 2FA</div>
                     </div>
 
+                    <h2>DeDRM Settings</h2>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="KindleSerialNumbers">Kindle Serial Numbers</label>
+                        <input type="text" id="KindleSerialNumbers" name="KindleSerialNumbers" is="emby-input" />
+                        <div class="fieldDescription">Comma-separated list of Kindle Serial Numbers (PIDs) used to decrypt DRM-protected Amazon books. (Required to send protected .azw3 or .mobi files)</div>
+                    </div>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -74,6 +81,7 @@
                     document.querySelector('#SmtpPort').value = config.SmtpPort || '587';
                     document.querySelector('#SmtpUsername').value = config.SmtpUsername || '';
                     document.querySelector('#SmtpPassword').value = config.SmtpPassword || '';
+                    document.querySelector('#KindleSerialNumbers').value = config.KindleSerialNumbers || '';
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -87,10 +95,14 @@
                     config.SmtpPort = parseInt(document.querySelector('#SmtpPort').value, 10);
                     config.SmtpUsername = document.querySelector('#SmtpUsername').value;
                     config.SmtpPassword = document.querySelector('#SmtpPassword').value;
+                    config.KindleSerialNumbers = document.querySelector('#KindleSerialNumbers').value;
 
                     ApiClient.updatePluginConfiguration(SendToKindleConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
                     });
+                });
+                return false;
+            });
                 });
                 return false;
             });

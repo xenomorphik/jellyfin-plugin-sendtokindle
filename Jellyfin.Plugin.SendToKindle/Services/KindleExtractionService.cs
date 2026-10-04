@@ -511,12 +511,43 @@ public class KindleExtractionService : IKindleExtractionService
 
             var tempOut = Path.Combine(Path.GetTempPath(), "sendtokindle_nodrm_" + Guid.NewGuid().ToString() + ext);
 
+            string args;
+            if (scriptName == "mobidedrm.py")
+            {
+                var pids = Plugin.Instance?.Configuration?.KindleSerialNumbers;
+                if (!string.IsNullOrWhiteSpace(pids))
+                {
+                    args = $"\"{scriptPath}\" \"{sourcePath}\" \"{tempOut}\" \"{pids}\"";
+                }
+                else
+                {
+                    args = $"\"{scriptPath}\" \"{sourcePath}\" \"{tempOut}\"";
+                }
+            }
+            else if (scriptName == "ineptepub.py" || scriptName == "ineptpdf.py")
+            {
+                // Adobe EPUB/PDF requires adeptkey.der in the plugin data path
+                var dataPath = Plugin.Instance?.AppPaths?.PluginsPath ?? string.Empty;
+                var keyFile = Path.Combine(dataPath, "adeptkey.der");
+                if (!File.Exists(keyFile))
+                {
+                    _logger.LogInformation("adeptkey.der not found in {Path}. Skipping Adobe DeDRM for {Source}.", dataPath, sourcePath);
+                    return sourcePath;
+                }
+
+                args = $"\"{scriptPath}\" \"{keyFile}\" \"{sourcePath}\" \"{tempOut}\"";
+            }
+            else
+            {
+                args = $"\"{scriptPath}\" \"{sourcePath}\" \"{tempOut}\"";
+            }
+
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "python3",
-                    Arguments = $"\"{scriptPath}\" \"{sourcePath}\" \"{tempOut}\"",
+                    Arguments = args,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
